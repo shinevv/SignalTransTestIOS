@@ -14,47 +14,65 @@
 {
     NetworkClock * netClock;
     NSString* myPeerId;
+    NSInteger iCount;
+    NSInteger index;
+    NSTimer* sendTimer;
+    NSMutableArray* mesArr;
+    NSTimer* reciveTimer;
+    dispatch_queue_t queue;
+    NSInteger talDelay;
 }
+
+@property (nonatomic, assign)NSInteger nArgDelay;
 @end
 
 @implementation VVLogInControlle
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    //self.navigationController.navigationBar.barStyle = UIBarStyleBlack;
     _syncTime.hidden = YES;
+    index = 1;
     netClock = [NetworkClock sharedNetworkClock];
     [[Shinevv shareManager] addShinevvDelegate:(id)self];
-//    [[Shinevv shareManager] modifyAudioStatus:false];
-//    [[Shinevv shareManager] modifyVideoStatus:false];
     _infoText.text = @"已同步服务器时间！\n";
     myPeerId = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
     _inputText.delegate = self;
     _numLab.text = [NSString stringWithFormat:@"%ld", _inputText.text.length];
+    mesArr = [NSMutableArray new];
+    iCount = 100;
+    reciveTimer = [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(reciveTime) userInfo:nil repeats:YES];
+    
+    [[NSRunLoop currentRunLoop] addTimer:reciveTimer forMode:NSRunLoopCommonModes];
+    queue = dispatch_queue_create("queueName", DISPATCH_QUEUE_SERIAL);
     [self joinroom];
+    
+    [self timerFireMethod:nil];
+}
 
+- (void) timerFireMethod:(NSTimer *) theTimer {
+    //    _sysClockLabel.text =
+    NSLog(@"System Clock: %@",[NSDate date]);
+    //    _netClockLabel.text = [NSString stringWithFormat:@"Network Clock: %@", netClock.networkTime];
+    NSLog(@"Network Clock: %@", netClock.networkTime);
+    //    _offsetLabel.text = [NSString stringWithFormat:@"Clock Offet: %5.3f mSec", netClock.networkOffset * 1000.0];
+    NSLog(@"Clock Offet: %5.3f mSec", netClock.networkOffset * 1000.0);
 }
 
 - (void)onConnected{
-//    [[Shinevv shareManager] modifyAudioStatus:false];
-//    [[Shinevv shareManager] modifyVideoStatus:false];
+
 }
 
 - (void)OnCreateLocalAudio:(bool) status{
-    NSLog(@"本地音频创建%@", status?@"成功":@"失败");
     if (status) {
         [[Shinevv shareManager] modifyAudioStatus:false];
     }
-    
 }
 
 - (void)OnCreateLocalVideo:(bool) status
 {
-    NSLog(@"本地视频创建%@", status?@"成功":@"失败");
     if (status) {
         [[Shinevv shareManager] modifyVideoStatus:false];
     }
-    
 }
 
 - (void)onConnectFail{
@@ -75,24 +93,46 @@
 }
 
 - (IBAction)sendMsg:(id)sender {
-    [self appendText:@"\n\n$$$$$$$$$$$$$$$"];
+    _sendBut.enabled = NO;
+    if (_sendNum.text&&_sendNum.text.length) {
+        iCount = [_sendNum.text intValue];
+    }
+    sendTimer = [NSTimer scheduledTimerWithTimeInterval:0.2f target:self selector:@selector(sendText) userInfo:nil repeats:YES];
+
+}
+
+- (void)sendText{
+    if (index > iCount) {
+        index = 1;
+        _sendBut.enabled = YES;
+        [sendTimer invalidate];
+        sendTimer = nil;
+        return;
+    }
+    
+    [self appendText:[NSString stringWithFormat:@"\n\n$$$$$$$$$$$$$$$-%ld", index]];
     NSString* sendTitm = [self timeStampFromUTCDate:netClock.networkTime];
     [self appendText:[NSString stringWithFormat:@"发送:%@毫秒", sendTitm]];
-    NSString* sendText = [NSString stringWithFormat:@"%@==%@", _inputText.text, sendTitm];
+    NSString* sendText = [NSString stringWithFormat:@"%@==%@&%ld", _inputText.text, sendTitm, index];
     [[Shinevv shareManager] sendChatMessage:sendText];
     [self appendText:[NSString stringWithFormat:@"发送内容:\n%@", sendText]];
+    index ++;
 }
 
 - (void)appendText:(NSString*)strText{
-    _infoText.text = [NSString stringWithFormat:@"%@%@\n",_infoText.text, strText];
-    [_infoText scrollRectToVisible:CGRectMake(0, _infoText.contentSize.height-15, _infoText.contentSize.width, 10) animated:YES];
+    __weak VVLogInControlle* ws = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        ws.aveDelay.text = [NSString stringWithFormat:@"%ld", ws.nArgDelay];
+        ws.infoText.text = [NSString stringWithFormat:@"%@%@\n",ws.infoText.text, strText];
+        [ws.infoText scrollRectToVisible:CGRectMake(0, ws.infoText.contentSize.height-15, ws.infoText.contentSize.width, 10) animated:NO];
+    });
+
     
-    _clearBut.hidden = NO;
+//    _clearBut.hidden = NO;
 }
 - (IBAction)clearBut:(id)sender {
     _infoText.text = @"";
-    UIButton* btn = sender;
-    btn.hidden = YES;
+    _aveDelay.text = @"0";
 }
 
 //接收到im消息回调
@@ -100,16 +140,47 @@
 {
 
     NSString* recTime = [self timeStampFromUTCDate:netClock.networkTime];
+    [mesArr addObject:@{@"recTime":recTime, @"mes":mes}];
+
+
+}
+
+- (void)reciveTime{
+    if (mesArr.count>0) {
+        NSArray* arr = [NSArray arrayWithArray:mesArr];
+        [mesArr removeAllObjects];
+        
+            dispatch_async(queue, ^{
+                NSArray* disArr = [NSArray arrayWithArray:arr];
+                for (NSDictionary* dic in disArr) {
+                    [self showText:dic];
+                }
+            });
+        
+    }
+}
+
+- (void)showText:(NSDictionary*)dic{
+    NSString* recTime =  dic[@"recTime"];
+    NSString* mes = dic[@"mes"];
     NSDictionary* mesDic = [[self dictionaryWithJsonString:mes] objectForKey:@"message"];
     NSString* text = mesDic[@"text"];
     NSArray* arr = [text componentsSeparatedByString:@"=="];
-    NSString* strSend = [arr lastObject];
-    [self appendText:@"\n\n###############"];
-    [self appendText:[NSString stringWithFormat:@"发送:%@毫秒", strSend]];
-    [self appendText:[NSString stringWithFormat:@"接收:%@毫秒", recTime]];
-    [self appendText:[NSString stringWithFormat:@"网络延时:%lld毫秒", [recTime longLongValue] - [strSend longLongValue]]];
-    [self appendText:[NSString stringWithFormat:@"接收内容:\n%@", text]];
-
+    NSString* strIndex = [[[arr lastObject] componentsSeparatedByString:@"&"] lastObject];
+    NSString* strSend = [[[arr lastObject] componentsSeparatedByString:@"&"] firstObject];
+    long long delay = [recTime longLongValue] - [strSend longLongValue];
+    if ([strIndex isEqualToString:@"1"]) {
+        talDelay = delay;
+    }else{
+        talDelay += delay;
+    }
+    self.nArgDelay = talDelay / [strIndex intValue];
+    NSString* showText = [NSString stringWithFormat:@"\n###############-%@\n发送:%@毫秒\n接收:%@毫秒\n网络延时:%lld毫秒\n接收内容:\n%@", strIndex,strSend,recTime,delay,text];
+    [self appendText:showText];
+//    [self appendText:[NSString stringWithFormat:@"发送:%@毫秒", strSend]];
+//    [self appendText:[NSString stringWithFormat:@"接收:%@毫秒", recTime]];
+//    [self appendText:[NSString stringWithFormat:@"网络延时:%lld毫秒", [recTime longLongValue] - [strSend longLongValue]]];
+//    [self appendText:[NSString stringWithFormat:@"接收内容:\n%@", text]];
 }
 
 - (void)onSendChatMessageFail:(NSString *)mes{

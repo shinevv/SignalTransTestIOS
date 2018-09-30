@@ -19,4 +19,6 @@
 @property (weak, nonatomic) IBOutlet UITextView *infoText;
 
 @property (weak, nonatomic) IBOutlet UIButton *clearBut;
+@property (weak, nonatomic) IBOutlet UITextField *sendNum;
+@property (weak, nonatomic) IBOutlet UILabel *aveDelay;
 @end
