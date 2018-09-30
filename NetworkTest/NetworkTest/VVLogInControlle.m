@@ -12,6 +12,7 @@
 
 @interface VVLogInControlle ()<VVConnectionDelegate, VVChatDelegate, UITextFieldDelegate, VVMediaDelegate>
 {
+    NetAssociation * netAssociation;
     NetworkClock * netClock;
     NSString* myPeerId;
     NSInteger iCount;
@@ -21,9 +22,12 @@
     NSTimer* reciveTimer;
     dispatch_queue_t queue;
     NSInteger talDelay;
+    
 }
 
 @property (nonatomic, assign)NSInteger nArgDelay;
+@property (nonatomic, assign)NSInteger maxDelay;
+@property (nonatomic, assign)NSInteger minDelay;
 @end
 
 @implementation VVLogInControlle
@@ -31,8 +35,13 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     _syncTime.hidden = YES;
+
     index = 1;
+    _nArgDelay = 0;
+    _maxDelay = 0;
+    _minDelay = 0;
     netClock = [NetworkClock sharedNetworkClock];
+    
     [[Shinevv shareManager] addShinevvDelegate:(id)self];
     _infoText.text = @"已同步服务器时间！\n";
     myPeerId = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
@@ -41,7 +50,7 @@
     mesArr = [NSMutableArray new];
     iCount = 100;
     reciveTimer = [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(reciveTime) userInfo:nil repeats:YES];
-    
+
     [[NSRunLoop currentRunLoop] addTimer:reciveTimer forMode:NSRunLoopCommonModes];
     queue = dispatch_queue_create("queueName", DISPATCH_QUEUE_SERIAL);
     [self joinroom];
@@ -50,12 +59,16 @@
 }
 
 - (void) timerFireMethod:(NSTimer *) theTimer {
+
     //    _sysClockLabel.text =
     NSLog(@"System Clock: %@",[NSDate date]);
     //    _netClockLabel.text = [NSString stringWithFormat:@"Network Clock: %@", netClock.networkTime];
     NSLog(@"Network Clock: %@", netClock.networkTime);
     //    _offsetLabel.text = [NSString stringWithFormat:@"Clock Offet: %5.3f mSec", netClock.networkOffset * 1000.0];
     NSLog(@"Clock Offet: %5.3f mSec", netClock.networkOffset * 1000.0);
+    
+    
+//    NSLog(@"Clock Offet: %5.3f mSec", netAssociation.offset * 1000.0);
 }
 
 - (void)onConnected{
@@ -93,6 +106,9 @@
 }
 
 - (IBAction)sendMsg:(id)sender {
+    _nArgDelay = 0;
+    _maxDelay = 0;
+    _minDelay = 0;
     _sendBut.enabled = NO;
     if (_sendNum.text&&_sendNum.text.length) {
         iCount = [_sendNum.text intValue];
@@ -122,17 +138,23 @@
 - (void)appendText:(NSString*)strText{
     __weak VVLogInControlle* ws = self;
     dispatch_async(dispatch_get_main_queue(), ^{
-        ws.aveDelay.text = [NSString stringWithFormat:@"%ld", ws.nArgDelay];
-        ws.infoText.text = [NSString stringWithFormat:@"%@%@\n",ws.infoText.text, strText];
-        [ws.infoText scrollRectToVisible:CGRectMake(0, ws.infoText.contentSize.height-15, ws.infoText.contentSize.width, 10) animated:NO];
+        [ws showText:strText];
     });
-
-    
-//    _clearBut.hidden = NO;
 }
+
+- (void)showText:(NSString*)strText{
+    _aveDelay.text = [NSString stringWithFormat:@"%ld", _nArgDelay];
+    _maxDelayLab.text = [NSString stringWithFormat:@"%ld", _maxDelay];
+    _minDelayLab.text = [NSString stringWithFormat:@"%ld", _minDelay];
+    _infoText.text = [NSString stringWithFormat:@"%@%@\n",_infoText.text, strText];
+}
+
+
 - (IBAction)clearBut:(id)sender {
     _infoText.text = @"";
     _aveDelay.text = @"0";
+    _maxDelayLab.text = @"0";
+    _minDelayLab.text = @"0";
 }
 
 //接收到im消息回调
@@ -153,14 +175,14 @@
             dispatch_async(queue, ^{
                 NSArray* disArr = [NSArray arrayWithArray:arr];
                 for (NSDictionary* dic in disArr) {
-                    [self showText:dic];
+                    [self deText:dic];
                 }
             });
         
     }
 }
 
-- (void)showText:(NSDictionary*)dic{
+- (void)deText:(NSDictionary*)dic{
     NSString* recTime =  dic[@"recTime"];
     NSString* mes = dic[@"mes"];
     NSDictionary* mesDic = [[self dictionaryWithJsonString:mes] objectForKey:@"message"];
@@ -171,16 +193,22 @@
     long long delay = [recTime longLongValue] - [strSend longLongValue];
     if ([strIndex isEqualToString:@"1"]) {
         talDelay = delay;
+        _minDelay = delay;
+        _maxDelay = delay;
     }else{
         talDelay += delay;
     }
     self.nArgDelay = talDelay / [strIndex intValue];
+    if (delay<_minDelay && delay>0) {
+        _minDelay = delay;
+    }
+    if (delay > _maxDelay) {
+        _maxDelay = delay;
+    }
     NSString* showText = [NSString stringWithFormat:@"\n###############-%@\n发送:%@毫秒\n接收:%@毫秒\n网络延时:%lld毫秒\n接收内容:\n%@", strIndex,strSend,recTime,delay,text];
     [self appendText:showText];
-//    [self appendText:[NSString stringWithFormat:@"发送:%@毫秒", strSend]];
-//    [self appendText:[NSString stringWithFormat:@"接收:%@毫秒", recTime]];
-//    [self appendText:[NSString stringWithFormat:@"网络延时:%lld毫秒", [recTime longLongValue] - [strSend longLongValue]]];
-//    [self appendText:[NSString stringWithFormat:@"接收内容:\n%@", text]];
+    NSLog(@"%ld == %ld == %ld", _nArgDelay, _maxDelay, _minDelay);
+
 }
 
 - (void)onSendChatMessageFail:(NSString *)mes{
@@ -191,7 +219,7 @@
     
      NSTimeInterval timeInterval = [UTCDate timeIntervalSince1970];
      // *1000,是精确到毫秒；这里是精确到秒;
-     NSString *result = [NSString stringWithFormat:@"%.0f",timeInterval*1000];
+     NSString *result = [NSString stringWithFormat:@"%.0f",(timeInterval+netAssociation.offset)*1000];
      return result;
 
  }
@@ -218,5 +246,6 @@
     _numLab.text = [NSString stringWithFormat:@"%ld", len];
     return true;
 }
+
 
 @end

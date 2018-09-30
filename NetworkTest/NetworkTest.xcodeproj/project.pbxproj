@@ -42,6 +42,8 @@
 		DE1058EA215E3F3F00E0CA11 /* VVRoomPeerconnection.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DE1058E8215E3F3F00E0CA11 /* VVRoomPeerconnection.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DE1058EC215F6F7C00E0CA11 /* delete_draft.png in Resources */ = {isa = PBXBuildFile; fileRef = DE1058EB215F6F7C00E0CA11 /* delete_draft.png */; };
 		DE1058EE2160A1A200E0CA11 /* ntp.hosts in Resources */ = {isa = PBXBuildFile; fileRef = DE1058ED2160A1A200E0CA11 /* ntp.hosts */; };
+		DE1058F02160D3E800E0CA11 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DE1058EF2160D3E700E0CA11 /* CFNetwork.framework */; };
+		DE1058F22160D40600E0CA11 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DE1058F12160D40600E0CA11 /* CoreGraphics.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -119,6 +121,8 @@
 		DE1058E8215E3F3F00E0CA11 /* VVRoomPeerconnection.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VVRoomPeerconnection.framework; path = NetworkTest/VVRoomPeerconnection.framework; sourceTree = "<group>"; };
 		DE1058EB215F6F7C00E0CA11 /* delete_draft.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = delete_draft.png; sourceTree = "<group>"; };
 		DE1058ED2160A1A200E0CA11 /* ntp.hosts */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ntp.hosts; sourceTree = "<group>"; };
+		DE1058EF2160D3E700E0CA11 /* CFNetwork.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CFNetwork.framework; path = System/Library/Frameworks/CFNetwork.framework; sourceTree = SDKROOT; };
+		DE1058F12160D40600E0CA11 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,6 +130,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DE1058F22160D40600E0CA11 /* CoreGraphics.framework in Frameworks */,
+				DE1058F02160D3E800E0CA11 /* CFNetwork.framework in Frameworks */,
 				DE1058A7215E28BB00E0CA11 /* CocoaAsyncSocket.framework in Frameworks */,
 				DE1058E9215E3F3F00E0CA11 /* VVRoomPeerconnection.framework in Frameworks */,
 			);
@@ -195,6 +201,8 @@
 		DE1058A3215E21E600E0CA11 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				DE1058F12160D40600E0CA11 /* CoreGraphics.framework */,
+				DE1058EF2160D3E700E0CA11 /* CFNetwork.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";

@@ -21,4 +21,6 @@
 @property (weak, nonatomic) IBOutlet UIButton *clearBut;
 @property (weak, nonatomic) IBOutlet UITextField *sendNum;
 @property (weak, nonatomic) IBOutlet UILabel *aveDelay;
+@property (weak, nonatomic) IBOutlet UILabel *maxDelayLab;
+@property (weak, nonatomic) IBOutlet UILabel *minDelayLab;
 @end
